@@ -1,14 +1,16 @@
 name: Daily Ozonetel calls
 
 on:
-  schedule:
-    - cron: "23 1 * * *"   # 6:53 AM IST every day (cron runs in UTC)
   workflow_dispatch:
     inputs:
       date:
         description: "Date to fetch (YYYY-MM-DD). Leave blank for yesterday."
         required: false
         default: ""
+
+concurrency:
+  group: daily-calls
+  cancel-in-progress: false
 
 jobs:
   run:
