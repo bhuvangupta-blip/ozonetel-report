@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: "Date to fetch (YYYY-MM-DD). Leave blank for yesterday."
+        description: "Date to fetch (YYYY-MM-DD). Leave blank for today (IST)."
         required: false
         default: ""
 
@@ -22,10 +22,27 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install requests
+
+      - name: Pick date
+        id: d
+        run: |
+          D="${{ github.event.inputs.date }}"
+          if [ -z "$D" ]; then
+            HM=$(TZ=Asia/Kolkata date +%H%M)
+            if [ $((10#$HM)) -lt 15 ]; then
+              # 00:00–00:14 IST: finish off yesterday so late-night calls aren't missed
+              D=$(TZ=Asia/Kolkata date -d yesterday +%F)
+            else
+              D=$(TZ=Asia/Kolkata date +%F)
+            fi
+          fi
+          echo "Fetching $D"
+          echo "date=$D" >> "$GITHUB_OUTPUT"
+
       - run: python fetch_calls.py
         env:
           OZ_API_KEY: ${{ secrets.OZ_API_KEY }}
           OZ_USER: ${{ secrets.OZ_USER }}
           WEB_APP_URL: ${{ secrets.WEB_APP_URL }}
           SHEET_SECRET: ${{ secrets.SHEET_SECRET }}
-          REPORT_DATE: ${{ github.event.inputs.date }}
+          REPORT_DATE: ${{ steps.d.outputs.date }}
